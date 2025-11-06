@@ -17,15 +17,15 @@
 
 #define RESOLUTION 8
 
-#define MA_ENB 12
+#define MA_ENB 13
 #define MA_IN1 27
 #define MA_IN2 14
 #define MA_DIR 1        // 电机A方向，取值为 0 或 1
 
 #define MB_ENB 4
-#define MB_IN1 16
-#define MB_IN2 17
-#define MB_DIR 1        // 电机B方向，取值为 0 或 1
+#define MB_IN1 18
+#define MB_IN2 19
+#define MB_DIR 0        // 电机B方向，取值为 0 或 1
 
 
 //! 编码器
@@ -36,7 +36,7 @@
 
 #define MB_ENC_A 32
 #define MB_ENC_B 33
-#define MB_ENC_DIR 1    // 编码器B方向，取值为 -1 或 1
+#define MB_ENC_DIR -1    // 编码器B方向，取值为 -1 或 1
 
 #define ENC_RES 30*44     // 轮子转一圈有多少脉冲 = 减速比*编码器分辨率
 

@@ -59,13 +59,13 @@ void Motor::run(float ratio)
 	}
 	else if ((pwm_value >= 0))
 	{
-  		ledcWrite(channel_1,0);		// A相下管导通，上管关闭
-  		ledcWrite(channel_2,_constrain(abs(pwm_value), 0, max_pwm_value));	// B相 输出PWM 并且限制在 max_pwm_value 之间
+  		ledcWrite(channel_1,_constrain(abs(pwm_value), 0, max_pwm_value)*!direction);		// A相下管导通，上管关闭
+  		ledcWrite(channel_2,_constrain(abs(pwm_value), 0, max_pwm_value)*direction);	// B相 输出PWM 并且限制在 max_pwm_value 之间
 	}
 	else
 	{
-  		ledcWrite(channel_1,_constrain(abs(pwm_value), 0, max_pwm_value));	// A相 输出PWM 并且限制在 max_pwm_value 之间
-  		ledcWrite(channel_2,0);		// B相下管导通，上管关闭
+  		ledcWrite(channel_1,_constrain(abs(pwm_value), 0, max_pwm_value)*direction);	// A相 输出PWM 并且限制在 max_pwm_value 之间
+  		ledcWrite(channel_2,_constrain(abs(pwm_value), 0, max_pwm_value)*!direction);		// B相下管导通，上管关闭
 	}
 	
 }

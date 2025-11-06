@@ -18,12 +18,10 @@ void pub_wheelticks();
 void pub_wheelomegas();
 
 
-//ros::NodeHandle nh;
+ros::NodeHandle nh;
 
-std_msgs::Int64MultiArray counters;  // 发布 编码器计数值
-std_msgs::Float32MultiArray omegas;   // 发布两个车轮的角速度
-
-
+std_msgs::Int64MultiArray counters;  // 发布 编码器计数值   ticks
+std_msgs::Float32MultiArray omegas;   // 发布两个车轮的角速度 rad/s
 
 // ! Subscriber
 ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", &cmd_vel_cb);
@@ -53,40 +51,38 @@ Kinematics kinematics(WIDTH, RADIUS);
 PIDController mA_PID(KP,KI,KD,RAMP,PID_LIMIT);
 PIDController mB_PID(KP,KI,KD,RAMP,PID_LIMIT);
 
-float target_omega_A = 10.0;
-float target_omega_B = 10.0;
+// float target_omega_A = 10.0;
+// float target_omega_B = 10.0;
 
 float Duty_ratio_A = 0.0;
 float Duty_ratio_B = 0.0;
 
 void setup()
 {
-  // 主频拉满240Mhz
-  //setCpuFrequencyMhz(240); 
+    // 主频拉满240Mhz
+    //setCpuFrequencyMhz(240); 
+    // Serial.begin(115200);
+    // Serial.println(ets_get_cpu_frequency());
+    // setBaud(); 
 
-  //setBaud(); 
+    nh.initNode();
+    nh.advertise(pub_encoders);
+    nh.advertise(pub_omegas);
 
-  // nh.initNode();
-  // nh.advertise(pub_encoders);
-  // nh.advertise(pub_omegas);
+    nh.subscribe(sub);
 
-  // nh.subscribe(sub);
+    // TF 广播器初始化
+    //broadcaster.init(nh); 
+    
+    // 电机初始化
+    motor_A.init();
+    motor_A.stop();
+    motor_B.init();
+    motor_B.stop();
 
-  // TF 广播器初始化
-  //broadcaster.init(nh); 
-  
-  Serial.begin(115200);
-  //Serial.println(ets_get_cpu_frequency());
-
-  // 电机初始化
-  motor_A.init();
-  motor_A.stop();
-  motor_B.init();
-  motor_B.stop();
-
-  // 编码器初始化
-  encoder_A.init();
-  encoder_B.init();
+    // 编码器初始化
+    encoder_A.init();
+    encoder_B.init();
 
 }
 
@@ -94,54 +90,47 @@ void setup()
 void loop()
 {
 
-  encoder_A.update();
-  encoder_B.update();
+//   encoder_A.update();
+//   encoder_B.update();
 
-  Duty_ratio_A = mA_PID(target_omega_A - encoder_A.get_omega());
+//   Duty_ratio_A = mA_PID(target_omega_A - encoder_A.get_omega());
 
   //motor_A.run(Duty_ratio_A);
   // Serial.print("Duty_ratio_A:");
   // Serial.println(Duty_ratio_A);
 
-  Duty_ratio_B = mB_PID(target_omega_B - encoder_B.get_omega());
+//   Duty_ratio_B = mB_PID(target_omega_B - encoder_B.get_omega());
 
+//   motor_B.run(Duty_ratio_B);
+//   Serial.print("Duty_ratio_B:");
+//   Serial.println(Duty_ratio_B);
+
+//   Serial.print("omegaB:");
+//   Serial.println(encoder_B.get_omega());
+//   delay(100);
+
+
+  // * 更新轮子实际角速度
+  encoder_A.update();
+  encoder_B.update();
+
+  // * 运动学正解 omega A B --> 线速度 角速度
+  kinematics.forward(encoder_A.get_omega(),encoder_B.get_omega());
+
+  // * PID 两个轮的omega(期望 - 实际) ---->  两个电机的占空比
+
+  Duty_ratio_A = mA_PID(kinematics.target_omega_A - encoder_A.get_omega());
+  Duty_ratio_B = mB_PID(kinematics.target_omega_B - encoder_B.get_omega());
+
+  // * 输出到电机
+  motor_A.run(Duty_ratio_A);
   motor_B.run(Duty_ratio_B);
-  Serial.print("Duty_ratio_B:");
-  Serial.println(Duty_ratio_B);
 
-  Serial.print("omegaB:");
-  Serial.println(encoder_B.get_omega());
+  pub_wheelticks();
+  pub_wheelomegas();
+
+  nh.spinOnce();
   delay(100);
-
-
-  // // * 更新轮子实际角速度
-  // encoder_A.update();
-  // encoder_B.update();
-
-  // // * 运动学正解 omega A B --> 线速度 角速度
-  // kinematics.forward(encoder_A.get_omega(),encoder_B.get_omega());
-
-  // // * PID 两个轮的omega(期望 - 实际) ---->  两个电机的占空比
-  // // Duty_ratio_A = mA_PID(target_omega_A - encoder_A.get_omega());
-  // // Duty_ratio_B = mB_PID(target_omega_B - encoder_B.get_omega());
-
-  // Duty_ratio_A = mA_PID(kinematics.target_omega_A - encoder_A.get_omega());
-  // Duty_ratio_B = mB_PID(kinematics.target_omega_B - encoder_B.get_omega());
-
-  // // * 输出到电机
-  // //motor_A.stop();
-  // motor_A.run(Duty_ratio_A);
-  // //motor_B.stop();
-  // motor_B.run(Duty_ratio_B);
-
-  // // Serial.print("omegaA: ");
-  // // Serial.println(encoder_A.get_omega());
-
-  // pub_wheelticks();
-  // pub_wheelomegas();
-
-  // nh.spinOnce();
-  // delay(100);
 }
 
 // ! ros cmd_vel 回调函数
